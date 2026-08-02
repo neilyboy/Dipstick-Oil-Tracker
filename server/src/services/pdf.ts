@@ -1,4 +1,7 @@
 import puppeteer from 'puppeteer';
+import fs from 'fs';
+import path from 'path';
+import { config } from '../config';
 
 interface VehicleWithRelations {
   id: string;
@@ -52,7 +55,23 @@ export async function generateVehiclePdf(vehicle: VehicleWithRelations): Promise
   try {
     const page = await browser.newPage();
 
-    const html = buildPdfHtml(vehicle);
+    // Load cover photo as base64 if available
+    const coverPhoto = vehicle.photos.find((p) => p.isCover) || vehicle.photos[0];
+    let coverPhotoBase64: string | null = null;
+    if (coverPhoto) {
+      try {
+        const filePath = path.join(config.uploadDir, coverPhoto.filename);
+        const data = fs.readFileSync(filePath);
+        const mime = coverPhoto.filename.endsWith('.png') ? 'image/png'
+          : coverPhoto.filename.endsWith('.webp') ? 'image/webp'
+          : 'image/jpeg';
+        coverPhotoBase64 = `data:${mime};base64,${data.toString('base64')}`;
+      } catch {
+        // File not found — skip photo
+      }
+    }
+
+    const html = buildPdfHtml(vehicle, coverPhotoBase64);
     await page.setContent(html, { waitUntil: 'networkidle0' });
 
     const pdf = await page.pdf({
@@ -76,8 +95,7 @@ export async function generateVehiclePdf(vehicle: VehicleWithRelations): Promise
   }
 }
 
-function buildPdfHtml(vehicle: VehicleWithRelations): string {
-  const coverPhoto = vehicle.photos.find((p) => p.isCover) || vehicle.photos[0];
+function buildPdfHtml(vehicle: VehicleWithRelations, coverPhotoBase64: string | null): string {
 
   const serviceRows = vehicle.serviceRecords
     .map(
@@ -128,7 +146,7 @@ function buildPdfHtml(vehicle: VehicleWithRelations): string {
 </head>
 <body>
   <div class="header">
-    ${coverPhoto ? `<img src="/uploads/${coverPhoto.filename}" onerror="this.style.display='none'" />` : ''}
+    ${coverPhotoBase64 ? `<img src="${coverPhotoBase64}" />` : ''}
     <div>
       <h1>${escapeHtml(vehicle.displayName)}</h1>
       <div class="subtitle">
