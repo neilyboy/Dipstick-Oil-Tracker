@@ -1,0 +1,191 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-surface-950 text-white;
+    overscroll-behavior: none;
+  }
+
+  input, select, textarea {
+    @apply bg-surface-800 border border-surface-700 rounded-lg px-3 py-2.5 text-white 
+           focus:outline-none focus:ring-2 focus:ring-oil-500 
+           focus:border-transparent transition-colors text-base;
+  }
+
+  input::placeholder, textarea::placeholder {
+    color: #64748b;
+  }
+
+  input[type="checkbox"] {
+    @apply w-4 h-4 rounded bg-surface-700 border-surface-600 text-oil-500 
+           focus:ring-oil-500 cursor-pointer;
+  }
+
+  label {
+    @apply block text-sm font-medium text-surface-200 mb-1.5;
+  }
+
+  textarea {
+    @apply resize-none;
+  }
+
+  select {
+    @apply appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 10L4 6h8z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    padding-right: 2.5rem;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg 
+           font-medium text-sm transition-all duration-150 active:scale-[0.97]
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+  }
+
+  .btn-primary {
+    @apply btn bg-oil-600 hover:bg-oil-500 text-white shadow-lg shadow-oil-600/20;
+  }
+
+  .btn-secondary {
+    @apply btn bg-surface-700 hover:bg-surface-600 text-surface-100;
+  }
+
+  .btn-danger {
+    @apply btn bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/20;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent hover:bg-surface-800 text-surface-300;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  .btn-icon {
+    @apply btn p-2 rounded-lg;
+  }
+
+  .card {
+    @apply bg-surface-850 border border-surface-700/50 rounded-xl overflow-hidden;
+  }
+
+  .card-interactive {
+    @apply card hover:border-surface-600/50 hover:bg-surface-800/50 
+           transition-all duration-150 cursor-pointer active:scale-[0.98];
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-green {
+    @apply badge bg-oil-500/15 text-oil-400 border border-oil-500/20;
+  }
+
+  .badge-yellow {
+    @apply badge bg-yellow-500/15 text-yellow-400 border border-yellow-500/20;
+  }
+
+  .badge-red {
+    @apply badge bg-red-500/15 text-red-400 border border-red-500/20;
+  }
+
+  .badge-gray {
+    @apply badge bg-surface-600/50 text-surface-300;
+  }
+
+  .page-container {
+    @apply max-w-4xl mx-auto px-4 py-6 pb-24;
+  }
+
+  .section-title {
+    @apply text-lg font-semibold text-white mb-4;
+  }
+
+  .form-group {
+    @apply mb-4;
+  }
+
+  .form-row {
+    @apply grid grid-cols-2 gap-4;
+  }
+
+  .form-row-3 {
+    @apply grid grid-cols-3 gap-4;
+  }
+
+  .divider {
+    @apply border-t border-surface-700 my-6;
+  }
+
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-16 text-surface-400;
+  }
+
+  /* Mobile bottom nav */
+  .bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-surface-900/95 backdrop-blur-xl 
+           border-t border-surface-700/50 z-50 safe-area-inset-bottom;
+  }
+
+  /* Safe area padding for bottom */
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Animations */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.2s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.15s ease-out;
+}
+
+/* Photo grid */
+.photo-grid {
+  @apply grid grid-cols-3 gap-2;
+}
+
+.photo-grid img {
+  @apply w-full aspect-square object-cover rounded-lg;
+}

@@ -1,0 +1,295 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Vehicle {
+  id             String          @id @default(uuid())
+  displayName    String
+  vin            String?
+  year           Int?
+  make           String?
+  model          String?
+  trim           String?
+  engine         String?
+  currentMileage Int?
+  licensePlate   String?
+  color          String?
+  notes          String?
+
+  // Oil / maintenance configuration
+  oilType              String?
+  oilViscosity         String?
+  oilBrandPref         String?
+  oilCapacity          Decimal?
+  filterPartNumber     String?
+  filterBrandPref      String?
+  crushWasherDetails   String?
+  gasketDetails        String?
+  intervalMiles        Int?
+  intervalMonths       Int?
+  reminderLeadMiles    Int?
+  reminderLeadDays     Int?
+
+  // Service execution helper
+  toolsRequired        String?
+  torqueSpecs          String?
+  jackPoints           String?
+  drainPlugSocketSize  String?
+  filterWrenchType     String?
+  specialProcedures    String?
+
+  // Metadata
+  tags     String? // JSON array stored as string
+  metadata Json?    // extensible JSON blob
+  archived Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  photos         VehiclePhoto[]
+  serviceRecords ServiceRecord[]
+  receipts       Receipt[]
+
+  @@index([displayName])
+  @@index([make, model])
+  @@index([archived])
+}
+
+model VehiclePhoto {
+  id        String   @id @default(uuid())
+  vehicleId String
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  width        Int?
+  height       Int?
+  isCover      Boolean  @default(false)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@index([vehicleId])
+}
+
+model ServiceRecord {
+  id        String   @id @default(uuid())
+  vehicleId String
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  serviceDate DateTime
+  mileage     Int
+
+  // Service type (default: oil_change, extensible)
+  serviceType String @default("oil_change")
+
+  // Oil details
+  oilBrand    String?
+  oilProduct  String?
+  oilViscosity String?
+  oilQuantity Decimal?
+
+  // Filter details
+  filterBrand String?
+  filterModel String?
+
+  // Service details
+  performedBy        String? // self, shop, or person name
+  cost               Decimal?
+  receiptNumber      String?
+  notes              String?
+
+  // Service checks
+  drainPlugReplaced  Boolean @default(false)
+  washerReplaced     Boolean @default(false)
+  oilLifeReset       Boolean @default(false)
+  torqueUsed         String?
+  serviceDuration    Int? // minutes
+  issuesObserved     String?
+  leaksObserved      String?
+  followUpWork       String?
+
+  // Next due overrides
+  nextDueMileageOverride Int?
+  nextDueDateOverride    DateTime?
+
+  // Calculated next due (set at creation time from vehicle intervals)
+  nextDueMileage Int?
+  nextDueDate    DateTime?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  photos   ServicePhoto[]
+  receipts Receipt[]
+
+  @@index([vehicleId])
+  @@index([serviceDate])
+  @@index([mileage])
+}
+
+model ServicePhoto {
+  id              String        @id @default(uuid())
+  serviceRecordId String
+  serviceRecord   ServiceRecord @relation(fields: [serviceRecordId], references: [id], onDelete: Cascade)
+
+  filename      String
+  originalName  String
+  mimeType      String
+  size          Int
+  width         Int?
+  height        Int?
+  photoType     String @default("general") // general, odometer, receipt, oil, filter, undercarriage
+  createdAt     DateTime @default(now())
+
+  @@index([serviceRecordId])
+}
+
+model Receipt {
+  id              String        @id @default(uuid())
+  serviceRecordId String?
+  serviceRecord   ServiceRecord? @relation(fields: [serviceRecordId], references: [id], onDelete: SetNull)
+  vehicleId       String?
+  vehicle         Vehicle?       @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+
+  filename      String
+  originalName  String
+  mimeType      String
+  size          Int
+
+  // OCR results
+  ocrProcessed   Boolean  @default(false)
+  ocrRawText     String?
+  ocrMerchantName String?
+  ocrDate        DateTime?
+  ocrTotal       Decimal?
+  ocrTax         Decimal?
+  ocrLineItems   Json? // array of {name, quantity, price}
+  ocrConfirmed   Boolean  @default(false) // user has reviewed and confirmed OCR
+
+  // Manual overrides
+  confirmedMerchant String?
+  confirmedDate     DateTime?
+  confirmedTotal    Decimal?
+  confirmedTax      Decimal?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceRecordId])
+  @@index([vehicleId])
+}
+
+model InventoryItem {
+  id       String @id @default(uuid())
+  name     String
+  category String @default("other") // oil, filter, washer, gasket, tool, supply, other
+
+  brand       String?
+  partNumber  String?
+  sku         String?
+  barcode     String?
+  quantity    Decimal  @default(0)
+  unitType    String   @default("each") // quart, jug, each, box, pair, etc.
+  packageSize String?
+  compatibleVehicleIds String? // comma-separated vehicle IDs
+
+  preferredVendor   String?
+  costPerUnit       Decimal?
+  purchaseCost      Decimal?
+  lowStockThreshold Decimal?
+  storageLocation   String?
+  notes             String?
+  photoFilename     String?
+
+  archived Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions InventoryTransaction[]
+
+  @@index([name])
+  @@index([category])
+  @@index([archived])
+  @@index([barcode])
+}
+
+model InventoryTransaction {
+  id             String        @id @default(uuid())
+  inventoryItemId String
+  inventoryItem  InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+
+  type          String  // add, remove, adjust, service_deduction
+  quantity      Decimal
+  previousQuantity Decimal
+  newQuantity   Decimal
+  notes         String?
+  serviceRecordId String? // link to service that triggered deduction
+
+  createdAt DateTime @default(now())
+
+  @@index([inventoryItemId])
+  @@index([createdAt])
+}
+
+model Reminder {
+  id        String  @id @default(uuid())
+  vehicleId String?
+  type      String  // oil_change_due, oil_change_overdue, low_stock, custom
+  title     String
+  message   String
+  isRead    Boolean @default(false)
+  isDismissed Boolean @default(false)
+  dismissedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([isRead, isDismissed])
+  @@index([createdAt])
+}
+
+model Settings {
+  id    String @id @default("default")
+  
+  defaultIntervalMiles    Int?
+  defaultIntervalMonths   Int?
+  defaultReminderLeadMiles Int?
+  defaultReminderLeadDays  Int?
+  
+  notificationsEnabled  Boolean @default(true)
+  lowStockEnabled       Boolean @default(true)
+  
+  updatedAt DateTime @updatedAt
+}
+
+model BackupConfig {
+  id        String  @id @default(uuid())
+  name      String
+  type      String  // s3, local
+  endpoint  String?
+  accessKey String?
+  secretKey String?
+  bucket    String?
+  region    String?
+  enabled   Boolean @default(false)
+  lastBackupAt DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  endpoint  String   @unique
+  keys      Json     // p256dh and auth keys
+  createdAt DateTime @default(now())
+}

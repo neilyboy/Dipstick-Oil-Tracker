@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: dipstick
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://dipstick:dipstick@db:5432/dipstick?schema=public
+      - PORT=3001
+      - UPLOAD_DIR=/app/uploads
+      - SESSION_SECRET=${SESSION_SECRET:-change-me}
+    volumes:
+      - dipstick-uploads:/app/uploads
+      - dipstick-data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: dipstick-db
+    environment:
+      - POSTGRES_USER=dipstick
+      - POSTGRES_PASSWORD=dipstick
+      - POSTGRES_DB=dipstick
+    volumes:
+      - dipstick-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dipstick"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  dipstick-uploads:
+  dipstick-data:
+  dipstick-postgres:
