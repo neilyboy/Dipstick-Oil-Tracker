@@ -42,12 +42,14 @@ COPY --from=server-builder /app/server/package.json ./server/package.json
 # Copy client build
 COPY --from=client-builder /app/client/dist ./client/dist
 
-# Copy root configs
+# Copy root configs and entrypoint
 COPY package.json ./
+COPY server/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Create data directories
 RUN mkdir -p /app/data /app/uploads
 
 EXPOSE 3001
 
-CMD ["node", "server/dist/index.js"]
+ENTRYPOINT ["/app/entrypoint.sh"]
