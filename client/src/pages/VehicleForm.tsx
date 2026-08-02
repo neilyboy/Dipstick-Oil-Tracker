@@ -54,6 +54,7 @@ export function VehicleForm() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showTools, setShowTools] = useState(false);
   const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
+  const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -123,6 +124,15 @@ export function VehicleForm() {
         result = await api.vehicles.update(id!, data);
       } else {
         result = await api.vehicles.create(data);
+        // Upload the pending photo if one was selected during creation
+        if (pendingPhoto) {
+          try {
+            await api.vehicles.uploadPhoto(result.id, pendingPhoto, true);
+          } catch {
+            // Photo upload failed, but vehicle was created — don't block
+            console.warn('Photo upload failed after vehicle creation');
+          }
+        }
       }
 
       toast.success(isEdit ? 'Vehicle updated' : 'Vehicle created');
@@ -135,12 +145,15 @@ export function VehicleForm() {
   };
 
   const handlePhotoUpload = async (file: File) => {
-    if (!id && !isEdit) {
-      toast.error('Save vehicle first before uploading photos');
-      return;
+    if (isEdit) {
+      // Edit mode: upload immediately since vehicle exists
+      const photo = await api.vehicles.uploadPhoto(id!, file, !coverPhoto);
+      if (!coverPhoto) setCoverPhoto(photo.filename);
+    } else {
+      // Create mode: store file locally, upload after vehicle is saved
+      setPendingPhoto(file);
+      setCoverPhoto(URL.createObjectURL(file));
     }
-    const photo = await api.vehicles.uploadPhoto(isEdit ? id! : '', file, !coverPhoto);
-    if (!coverPhoto) setCoverPhoto(photo.filename);
   };
 
   const input = (label: string, key: string, type = 'text', placeholder = '') => (
@@ -170,23 +183,18 @@ export function VehicleForm() {
         </button>
       </div>
 
-      {/* Cover Photo - only in edit mode (vehicle must exist first) */}
-      {isEdit ? (
-        <div className="mb-6">
-          <label>Cover Photo</label>
-          <PhotoUpload
-            onUpload={handlePhotoUpload}
-            preview={coverPhoto || undefined}
-            label="Change Cover Photo"
-          />
-        </div>
-      ) : (
-        <div className="mb-6 card p-4 border-dashed border-surface-600 text-center">
-          <p className="text-sm text-surface-400">
-            Photos can be added after saving the vehicle. You'll be taken to the vehicle page where you can upload photos.
-          </p>
-        </div>
-      )}
+      {/* Cover Photo */}
+      <div className="mb-6">
+        <label>Cover Photo</label>
+        <PhotoUpload
+          onUpload={handlePhotoUpload}
+          preview={coverPhoto || undefined}
+          label={isEdit ? 'Change Cover Photo' : 'Take or Select Cover Photo'}
+        />
+        {!isEdit && pendingPhoto && (
+          <p className="text-xs text-surface-500 mt-1">Photo will be uploaded when you save the vehicle.</p>
+        )}
+      </div>
 
       {/* Basic Info */}
       <h2 className="section-title">Basic Information</h2>
