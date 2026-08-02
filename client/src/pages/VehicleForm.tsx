@@ -170,15 +170,23 @@ export function VehicleForm() {
         </button>
       </div>
 
-      {/* Cover Photo */}
-      <div className="mb-6">
-        <label>Cover Photo</label>
-        <PhotoUpload
-          onUpload={handlePhotoUpload}
-          preview={coverPhoto || undefined}
-          label="Add Cover Photo"
-        />
-      </div>
+      {/* Cover Photo - only in edit mode (vehicle must exist first) */}
+      {isEdit ? (
+        <div className="mb-6">
+          <label>Cover Photo</label>
+          <PhotoUpload
+            onUpload={handlePhotoUpload}
+            preview={coverPhoto || undefined}
+            label="Change Cover Photo"
+          />
+        </div>
+      ) : (
+        <div className="mb-6 card p-4 border-dashed border-surface-600 text-center">
+          <p className="text-sm text-surface-400">
+            Photos can be added after saving the vehicle. You'll be taken to the vehicle page where you can upload photos.
+          </p>
+        </div>
+      )}
 
       {/* Basic Info */}
       <h2 className="section-title">Basic Information</h2>
