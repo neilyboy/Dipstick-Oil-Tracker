@@ -2,7 +2,8 @@
 set -e
 
 echo "Waiting for database to be ready..."
-until npx prisma db push --skip-generate --accept-data-loss 2>/dev/null; do
+cd /app/server
+until node node_modules/prisma/build/index.js db push --skip-generate --accept-data-loss; do
   echo "Database not ready, retrying in 3s..."
   sleep 3
 done
