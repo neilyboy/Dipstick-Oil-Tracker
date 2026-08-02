@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { HiArrowLeft, HiChevronDown, HiChevronUp } from 'react-icons/hi';
+import { HiArrowLeft, HiChevronDown, HiChevronUp, HiSearch } from 'react-icons/hi';
 import { api } from '../lib/api';
 import { PhotoUpload } from '../components/PhotoUpload';
 
@@ -56,6 +56,7 @@ export function VehicleForm() {
   const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
   const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
 
   useEffect(() => {
     if (vehicle) {
@@ -156,6 +157,45 @@ export function VehicleForm() {
     }
   };
 
+  const handleVinLookup = async () => {
+    const vin = form.vin?.trim();
+    if (!vin || vin.length !== 17) {
+      toast.error('Please enter a valid 17-character VIN first');
+      return;
+    }
+
+    setLookingUp(true);
+    try {
+      const res = await fetch(`/api/vehicles/decode-vin/${vin}`);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'VIN lookup failed');
+      }
+      const data = await res.json();
+
+      // Populate form fields from decoded data
+      const updates: Record<string, any> = {};
+      if (data.year) updates.year = data.year;
+      if (data.make) updates.make = data.make;
+      if (data.model) updates.model = data.model;
+      if (data.trim) updates.trim = data.trim;
+      if (data.engineSummary) updates.engine = data.engineSummary;
+      if (data.estimatedOilCapacity) updates.oilCapacity = data.estimatedOilCapacity;
+
+      // Build display name from decoded data
+      if (data.year && data.make && data.model) {
+        updates.displayName = form.displayName || `${data.year} ${data.make} ${data.model}`;
+      }
+
+      setForm((f) => ({ ...f, ...updates }));
+      toast.success(`Found: ${data.year} ${data.make} ${data.model || ''}`);
+    } catch (err: any) {
+      toast.error(err.message || 'VIN lookup failed');
+    } finally {
+      setLookingUp(false);
+    }
+  };
+
   const input = (label: string, key: string, type = 'text', placeholder = '') => (
     <div className="form-group">
       <label>{label}</label>
@@ -209,7 +249,31 @@ export function VehicleForm() {
         {input('Engine', 'engine', 'text', '3.5L V6')}
       </div>
       <div className="form-row">
-        {input('VIN', 'vin', 'text', '17-character VIN')}
+        <div className="form-group">
+          <label>VIN</label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={form.vin}
+              onChange={(e) => update('vin', e.target.value.toUpperCase())}
+              placeholder="17-character VIN"
+              maxLength={17}
+              className="flex-1 font-mono"
+            />
+            <button
+              onClick={handleVinLookup}
+              disabled={lookingUp || (form.vin?.length || 0) !== 17}
+              className="btn-secondary btn-sm flex-shrink-0 whitespace-nowrap"
+            >
+              {lookingUp ? (
+                <span className="inline-block w-3 h-3 border-2 border-surface-400 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <HiSearch className="w-3.5 h-3.5" />
+              )}
+              Lookup
+            </button>
+          </div>
+        </div>
         {input('License Plate', 'licensePlate')}
       </div>
       <div className="form-row">

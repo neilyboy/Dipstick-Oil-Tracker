@@ -223,3 +223,72 @@ vehicleRoutes.get('/:id/due-status', async (req: Request, res: Response) => {
 
   res.json(due);
 });
+
+// VIN Decode using NHTSA public API
+vehicleRoutes.get('/decode-vin/:vin', async (req: Request, res: Response) => {
+  const { vin } = req.params;
+
+  if (!vin || vin.length !== 17) {
+    throw new AppError(400, 'VIN must be exactly 17 characters');
+  }
+
+  try {
+    const response = await fetch(
+      `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVin/${vin}?format=json`
+    );
+    const data = await response.json() as { Results?: Array<{ Variable: string; Value: string }> };
+
+    if (!data.Results || data.Results.length === 0) {
+      throw new AppError(404, 'No data found for this VIN');
+    }
+
+    // Extract relevant fields from NHTSA response
+    const results = data.Results;
+    const getValue = (name: string): string | null => {
+      const r = results.find((v) => v.Variable === name);
+      return r?.Value && r.Value.trim() !== '' && r.Value !== 'Not Applicable' ? r.Value.trim() : null;
+    };
+
+    const decoded = {
+      year: parseInt(getValue('Model Year') || '0') || null,
+      make: getValue('Make'),
+      model: getValue('Model'),
+      trim: getValue('Trim'),
+      engine: getValue('Engine Model') || getValue('Engine Configuration'),
+      engineDisplacement: getValue('Displacement (L)'),
+      engineCylinders: getValue('Engine Number of Cylinders'),
+      fuelType: getValue('Fuel Type - Primary'),
+      driveType: getValue('Drive Type'),
+      transmission: getValue('Transmission Style'),
+      bodyClass: getValue('Body Class'),
+      vehicleType: getValue('Vehicle Type'),
+      manufacturer: getValue('Manufacturer Name'),
+      plantCountry: getValue('Plant Country'),
+      doors: getValue('Doors'),
+      // Try to build a useful engine string
+      engineSummary: [
+        getValue('Displacement (L)'),
+        getValue('Engine Configuration'),
+        getValue('Engine Model'),
+      ].filter(Boolean).join(' ') || null,
+    };
+
+    // Try to determine oil-related specs from engine data
+    const engineLiters = parseFloat(getValue('Displacement (L)') || '0');
+    let estimatedOilCapacity: number | null = null;
+    if (engineLiters > 0) {
+      // Rough estimate: most engines take ~1-1.5 quarts per liter of displacement
+      estimatedOilCapacity = Math.round(engineLiters * 1.3 * 10) / 10;
+    }
+
+    res.json({
+      ...decoded,
+      estimatedOilCapacity,
+      rawResults: results,
+    });
+  } catch (err: any) {
+    if (err instanceof AppError) throw err;
+    console.error('VIN decode error:', err);
+    throw new AppError(502, 'Failed to decode VIN. The NHTSA service may be unavailable.');
+  }
+});
