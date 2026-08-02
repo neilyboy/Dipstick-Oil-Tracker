@@ -45,9 +45,12 @@ export function Dashboard() {
     <div className="page-container">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Dipstick</h1>
-          <p className="text-surface-400 text-sm mt-0.5">Oil Change Tracker</p>
+        <div className="flex items-center gap-3">
+          <img src="/favicon.svg" alt="Dipstick" className="w-10 h-10" />
+          <div>
+            <h1 className="text-2xl font-bold">Dipstick</h1>
+            <p className="text-surface-400 text-sm mt-0.5">Oil Change Tracker</p>
+          </div>
         </div>
         <Link to="/vehicles/new" className="btn-primary btn-sm">
           <HiPlus className="w-4 h-4" />
